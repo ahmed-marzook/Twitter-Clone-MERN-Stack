@@ -1,0 +1,39 @@
+{
+  "name": "twitter-clone",
+  "version": "1.0.0",
+  "description": "",
+  "main": "backend/server.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node backend/dist/server.js",
+    "dev": "nodemon --exec tsx backend/server.ts",
+    "clean": "rm -rf backend/dist"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.23",
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.7.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^4.21.2",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.17.0",
+    "nodemon": "^3.1.10"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.9",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.2.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2"
+  }
+}
