@@ -4,6 +4,7 @@ import { StatusCodes } from "http-status-codes";
 
 import mongoose from "mongoose";
 
+import Notification from "../models/notification.mode";
 import User from "../models/user.model";
 
 export const getUserProfile = async (req: Request, res: Response) => {
@@ -67,7 +68,13 @@ export const followUnfollowUser = async (req: Request, res: Response) => {
       });
 
       // Send notification to the user
-      return res.status(StatusCodes.OK).json({
+      const newNotification = new Notification({
+        type: "follow",
+        from: currentUser._id,
+        to: userToModify._id,
+      });
+      newNotification.save();
+      return res.status(StatusCodes.CREATED).json({
         message: `Now following ${userToModify.username}`,
         isFollowing: true,
         followersCount: userToModify.followers.length,
@@ -76,6 +83,30 @@ export const followUnfollowUser = async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.error("Error in followUnfollowUser: ", error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      error: "Internal Server Error",
+    });
+  }
+};
+
+export const getSuggestedUsers = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user._id;
+    const usersFollowedByMe = await User.findById(userId).select("following");
+
+    const selectionUsers = await User.aggregate([
+      { $match: { _id: { $ne: userId } } },
+      { $sample: { size: 10 } },
+    ]);
+
+    const filteredUsers = selectionUsers.filter(
+      (user) => !usersFollowedByMe?.following.includes(user._id)
+    );
+    const suggestedUsers = filteredUsers.slice(0, 4);
+    suggestedUsers.forEach((user) => (user.password = null));
+    res.status(StatusCodes.OK).json(suggestedUsers);
+  } catch (error) {
+    console.error("Error in getSuggestUsers: ", error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       error: "Internal Server Error",
     });

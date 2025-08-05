@@ -1,7 +1,7 @@
 import express, { Router } from "express";
 
 import { getMe, login, logout, signup } from "../controllers/auth.controller";
-import { protectRoute } from "../middleware/protectRote";
+import { protectRoute } from "../middleware/protectRoute";
 import { validateDataAsync } from "../middleware/validation";
 import { userRegistrationSchemaWithAsyncValidations } from "../schemas/user.schema";
 
