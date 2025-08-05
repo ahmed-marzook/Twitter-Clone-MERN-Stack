@@ -12,6 +12,7 @@ import { Server } from "http";
 
 import { connectMongoDB } from "./config/mongoDB";
 import authRoutes from "./routes/auth.routes";
+import userRoutes from "./routes/user.routes";
 
 // Load environment variables
 dotenv.config();
@@ -32,6 +33,7 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 app.use(cookieParser()); // Parse cookies
 
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 
 // Routes
 app.get("/", (req: Request, res: Response) => {

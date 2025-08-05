@@ -2,8 +2,8 @@ import express, { Router } from "express";
 
 import { getMe, login, logout, signup } from "../controllers/auth.controller";
 import { protectRoute } from "../middleware/protectRote";
+import { validateDataAsync } from "../middleware/validation";
 import { userRegistrationSchemaWithAsyncValidations } from "../schemas/user.schema";
-import { validateData, validateDataAsync } from "../utils/validation";
 
 const router: Router = express.Router();
 
