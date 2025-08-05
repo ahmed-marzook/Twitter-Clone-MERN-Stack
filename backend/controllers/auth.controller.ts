@@ -52,13 +52,71 @@ export const signup = async (req: Request, res: Response) => {
 };
 
 export const login = async (req: Request, res: Response) => {
-  res.json({
-    data: "You hit the Login endpoint",
-  });
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email: email.toLowerCase() });
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      user?.password || ""
+    );
+
+    if (!user || !isPasswordValid) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        error: "Invalid email or password",
+      });
+    }
+
+    generateTokenAndSetCookie(user._id.toString(), res);
+
+    res.status(StatusCodes.CREATED).json({
+      _id: user._id,
+      fullName: user.fullName,
+      username: user.username,
+      email: user.email,
+      bio: user.bio,
+      followers: user.followers,
+      following: user.following,
+      avatar: user.avatar,
+      coverImg: user.coverImg,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      error: "An error occurred while logging in",
+    });
+  }
 };
 
 export const logout = async (req: Request, res: Response) => {
-  res.json({
-    data: "You hit the Logout endpoint",
-  });
+  try {
+    res.cookie("jwt", "", { maxAge: 0 });
+    res.status(StatusCodes.OK).json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      error: "An error occurred while logging out",
+    });
+  }
+};
+
+export const getMe = async (req: Request, res: Response) => {
+  try {
+    const { user } = req;
+    res.status(StatusCodes.OK).json({
+      _id: user._id,
+      fullName: user.fullName,
+      username: user.username,
+      email: user.email,
+      bio: user.bio,
+      followers: user.followers,
+      following: user.following,
+      avatar: user.avatar,
+      coverImg: user.coverImg,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      error: "An error occurred while fetching current user",
+    });
+  }
 };
