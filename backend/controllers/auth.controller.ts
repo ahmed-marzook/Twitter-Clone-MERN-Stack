@@ -2,9 +2,11 @@ import { Request, Response } from "express";
 
 export const signup = async (req: Request, res: Response) => {
   try {
-    const { fullName, username, email, password } = req.body();
+    const { fullName, username, email, password } = req.body;
     res.json({ message: "User registered successfully", data: req.body });
-  } catch (error) {}
+  } catch (error) {
+    console.log(error);
+  }
 };
 
 export const login = async (req: Request, res: Response) => {
