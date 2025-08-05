@@ -255,8 +255,11 @@ export const updatePassword = async (req: Request, res: Response) => {
 
 // 4. Avatar Upload
 export const updateAvatar = async (req: Request, res: Response) => {
-  const { avatar } = req.body;
+  const avatar = req.file?.buffer;
   console.log(avatar);
+  res.status(StatusCodes.NOT_IMPLEMENTED).json({
+    error: "Unimplemented Route",
+  });
   // TODO: Implement avatar upload
   // - Handle multipart/form-data file upload
   // - Validate file type and size
@@ -267,6 +270,9 @@ export const updateAvatar = async (req: Request, res: Response) => {
 
 // 5. Cover Image Upload
 export const updateCoverImage = async (req: Request, res: Response) => {
+  res.status(StatusCodes.NOT_IMPLEMENTED).json({
+    error: "Unimplemented Route",
+  });
   // TODO: Implement cover image upload
   // - Handle multipart/form-data file upload
   // - Validate file type and size
