@@ -114,7 +114,7 @@ export const userRegistrationSchemaWithAsyncValidations = userRegistrationSchema
 
 // Rest of your existing schemas...
 export const userLoginSchema = z.object({
-  email: z.string().email("Invalid email format").toLowerCase(),
+  email: z.email("Invalid email format").toLowerCase(),
   password: z.string().min(1, "Password is required"),
 });
 

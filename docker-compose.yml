@@ -11,5 +11,13 @@ services:
     volumes:
       - mongo-data:/data/db
 
+  localstack:
+    container_name: "localstack-s3"
+    image: localstack/localstack:s3-latest
+    ports:
+      - "127.0.0.1:4566:4566"
+    volumes:
+      - "./init-s3.py:/etc/localstack/init/ready.d/init-s3.py"
+
 volumes:
   mongo-data:

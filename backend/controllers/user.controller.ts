@@ -1,3 +1,5 @@
+import bcrypt from "bcrypt";
+
 import { Request, Response } from "express";
 
 import { StatusCodes } from "http-status-codes";
@@ -6,6 +8,7 @@ import mongoose from "mongoose";
 
 import Notification from "../models/notification.mode";
 import User from "../models/user.model";
+import { customValidations } from "../schemas/user.schema";
 
 export const getUserProfile = async (req: Request, res: Response) => {
   const { username } = req.params;
@@ -113,4 +116,161 @@ export const getSuggestedUsers = async (req: Request, res: Response) => {
   }
 };
 
-export const updateUserProfile = async (req: Request, res: Response) => {};
+export const updateProfile = async (req: Request, res: Response) => {
+  const { fullName, username, bio, link } = req.body;
+  const userId = req.user._id;
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ error: "User not found" });
+    }
+
+    // Update only provided fields
+    if (fullName !== undefined) user.fullName = fullName;
+    if (username !== undefined) user.username = username;
+    if (bio !== undefined) user.bio = bio;
+    if (link !== undefined) user.link = link;
+
+    const updatedUser = await user.save();
+
+    // Remove password from response
+    updatedUser.password = "";
+
+    return res.status(StatusCodes.OK).json(updatedUser);
+  } catch (error) {
+    console.error("Error in updateProfile: ", error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      error: "Internal Server Error",
+    });
+  }
+};
+
+// 2. Email Update (separate due to potential verification needs)
+export const updateEmail = async (req: Request, res: Response) => {
+  const { email } = req.body;
+  const userId = req.user._id;
+
+  try {
+    if (!email) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json({ error: "Email is required" });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ error: "User not found" });
+    }
+
+    // Check if email is already taken
+    const existingUser = await User.findOne({
+      email,
+      _id: { $ne: userId },
+    });
+
+    if (existingUser) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json({ error: "Email already exists" });
+    }
+
+    user.email = email;
+    const updatedUser = await user.save();
+
+    // Remove password from response
+    updatedUser.password = "";
+    // TODO: Send email verification if needed
+    // await sendEmailVerification(email);
+
+    return res.status(StatusCodes.OK).json(updatedUser);
+  } catch (error) {
+    console.error("Error in updateEmail: ", error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      error: "Internal Server Error",
+    });
+  }
+};
+
+// 3. Password Update (security sensitive)
+export const updatePassword = async (req: Request, res: Response) => {
+  const { currentPassword, newPassword } = req.body;
+  const userId = req.user._id;
+
+  try {
+    // Validate required fields
+    if (!currentPassword || !newPassword) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json({ error: "Please provide both current and new password" });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ error: "User not found" });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json({ error: "Current password is incorrect" });
+    }
+
+    // Validate new password strength
+    if (!customValidations.isStrongPassword(newPassword)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        error:
+          "Password must contain at least one lowercase letter, one uppercase letter, one number, and one special character",
+      });
+    }
+
+    // Hash and save new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+
+    await user.save();
+
+    // Return success without user data for security
+    return res.status(StatusCodes.OK).json({
+      message: "Password updated successfully",
+    });
+  } catch (error) {
+    console.error("Error in updatePassword: ", error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      error: "Internal Server Error",
+    });
+  }
+};
+
+// 4. Avatar Upload
+export const updateAvatar = async (req: Request, res: Response) => {
+  const { avatar } = req.body;
+  console.log(avatar);
+  // TODO: Implement avatar upload
+  // - Handle multipart/form-data file upload
+  // - Validate file type and size
+  // - Upload to cloud storage or local storage
+  // - Update user.avatar field with file URL
+  // - Return updated user profile
+};
+
+// 5. Cover Image Upload
+export const updateCoverImage = async (req: Request, res: Response) => {
+  // TODO: Implement cover image upload
+  // - Handle multipart/form-data file upload
+  // - Validate file type and size
+  // - Upload to cloud storage or local storage
+  // - Update user.coverImg field with file URL
+  // - Return updated user profile
+};
