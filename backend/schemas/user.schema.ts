@@ -2,6 +2,40 @@
 
 import { z } from "zod";
 
+import { User } from "../models/user.model";
+
+// Custom Zod refinements for common validations
+export const customValidations = {
+  // Check if username is available (async version)
+  isUsernameAvailable: async (username: string): Promise<boolean> => {
+    const existingUser = await User.findOne({ username });
+    return !existingUser;
+  },
+
+  // Check if email is available (async version)
+  isEmailAvailable: async (email: string): Promise<boolean> => {
+    const existingUser = await User.findOne({ email });
+    return !existingUser;
+  },
+
+  // Password strength checker
+  isStrongPassword: (password: string): boolean => {
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    const isLongEnough = password.length >= 8;
+
+    return (
+      hasLowerCase &&
+      hasUpperCase &&
+      hasNumbers &&
+      hasSpecialChar &&
+      isLongEnough
+    );
+  },
+};
+
 // Base user schema for common validations
 const baseUserSchema = z.object({
   username: z
@@ -42,17 +76,17 @@ const baseUserSchema = z.object({
   coverImg: z.string().url("Invalid cover image URL").optional().nullable(),
 });
 
-// User registration schema
+// User registration schema with custom validations
 export const userRegistrationSchema = baseUserSchema
   .extend({
     password: z
       .string()
       .min(8, "Password must be at least 8 characters long")
       .max(100, "Password cannot exceed 100 characters")
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password must contain at least one lowercase letter, one uppercase letter, and one number"
-      ),
+      .refine((password) => customValidations.isStrongPassword(password), {
+        message:
+          "Password must contain at least one lowercase letter, one uppercase letter, one number, and one special character",
+      }),
 
     confirmPassword: z.string(),
   })
@@ -61,22 +95,36 @@ export const userRegistrationSchema = baseUserSchema
     path: ["confirmPassword"],
   });
 
-// User login schema
+// For async validations, create a separate schema
+export const userRegistrationSchemaWithAsyncValidations = userRegistrationSchema
+  .refine(
+    async (data) => await customValidations.isUsernameAvailable(data.username),
+    {
+      message: "Username is already taken",
+      path: ["username"],
+    }
+  )
+  .refine(
+    async (data) => await customValidations.isEmailAvailable(data.email),
+    {
+      message: "Email is already registered",
+      path: ["email"],
+    }
+  );
+
+// Rest of your existing schemas...
 export const userLoginSchema = z.object({
   email: z.string().email("Invalid email format").toLowerCase(),
   password: z.string().min(1, "Password is required"),
 });
 
-// User profile update schema
 export const userProfileUpdateSchema = baseUserSchema
   .omit({ email: true })
   .partial()
   .extend({
-    // Allow email updates but make it optional
     email: z.string().email("Invalid email format").toLowerCase().optional(),
   });
 
-// User password update schema
 export const userPasswordUpdateSchema = z
   .object({
     currentPassword: z.string().min(1, "Current password is required"),
@@ -84,10 +132,10 @@ export const userPasswordUpdateSchema = z
       .string()
       .min(8, "Password must be at least 8 characters long")
       .max(100, "Password cannot exceed 100 characters")
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password must contain at least one lowercase letter, one uppercase letter, and one number"
-      ),
+      .refine((password) => customValidations.isStrongPassword(password), {
+        message:
+          "Password must contain at least one lowercase letter, one uppercase letter, one number, and one special character",
+      }),
     confirmNewPassword: z.string(),
   })
   .refine((data) => data.newPassword === data.confirmNewPassword, {
@@ -100,19 +148,16 @@ export const objectIdSchema = z
   .string()
   .regex(/^[0-9a-fA-F]{24}$/, "Invalid ObjectId format");
 
-// User follow/unfollow schema
 export const userFollowSchema = z.object({
   userId: objectIdSchema,
 });
 
-// User search/query schema
 export const userSearchSchema = z.object({
   query: z.string().trim().min(1, "Search query is required").max(50),
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(50).default(10),
 });
 
-// Complete user response schema (for API responses)
 export const userResponseSchema = z.object({
   _id: objectIdSchema,
   username: z.string(),
@@ -128,12 +173,11 @@ export const userResponseSchema = z.object({
   updatedAt: z.date(),
 });
 
-// Public user profile schema (without sensitive data)
 export const publicUserProfileSchema = userResponseSchema.omit({
   email: true,
 });
 
-// Type exports for TypeScript
+// Type exports
 export type UserRegistration = z.infer<typeof userRegistrationSchema>;
 export type UserLogin = z.infer<typeof userLoginSchema>;
 export type UserProfileUpdate = z.infer<typeof userProfileUpdateSchema>;
