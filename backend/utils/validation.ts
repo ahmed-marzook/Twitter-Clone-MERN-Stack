@@ -3,6 +3,8 @@ import { Request, Response, NextFunction } from "express";
 import { z, ZodError } from "zod";
 
 import { StatusCodes } from "http-status-codes";
+
+import { $ZodIssue } from "zod/v4/core";
 export function validateData(schema: z.ZodObject<any, any>) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -10,7 +12,7 @@ export function validateData(schema: z.ZodObject<any, any>) {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const errorMessages = error.issues.map((issue: any) => ({
+        const errorMessages = error.issues.map((issue: $ZodIssue) => ({
           field: issue.path.join("."),
           message: issue.message,
         }));
@@ -27,16 +29,14 @@ export function validateData(schema: z.ZodObject<any, any>) {
 }
 
 // New async validation function for schemas with async refinements
-export function validateDataAsync(
-  schema: z.ZodObject<any, any> | z.ZodEffects<any, any>
-) {
+export function validateDataAsync(schema: z.ZodObject<any, any>) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       await schema.parseAsync(req.body);
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const errorMessages = error.issues.map((issue: any) => ({
+        const errorMessages = error.issues.map((issue: $ZodIssue) => ({
           field: issue.path.join("."),
           message: issue.message,
         }));
@@ -50,4 +50,23 @@ export function validateDataAsync(
       }
     }
   };
+}
+
+export async function validateManually<T>(
+  schema: z.ZodSchema<T>,
+  data: unknown
+): Promise<{ success: true; data: T } | { success: false; errors: any[] }> {
+  try {
+    const validatedData = await schema.parseAsync(data);
+    return { success: true, data: validatedData };
+  } catch (error) {
+    if (error instanceof ZodError) {
+      const errorMessages = error.issues.map((issue: $ZodIssue) => ({
+        path: issue.path.join("."),
+        message: issue.message,
+      }));
+      return { success: false, errors: errorMessages };
+    }
+    throw error;
+  }
 }
